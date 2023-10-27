@@ -20,7 +20,7 @@ class FormViewModel : ViewModel() {
     private var _data = MutableStateFlow(Form())
     val data: StateFlow<Form> = _data.asStateFlow()
 
-    var confirmPass by mutableStateOf("")
+    var emailString by mutableStateOf("")
 
     val repository = Repository()
 
@@ -42,8 +42,8 @@ class FormViewModel : ViewModel() {
         }
     }
 
-    fun setConfirmPassword(confirmPass: String) {
-        this.confirmPass = confirmPass
+    fun setEmail(email: String) {
+        this.emailString = email
     }
 
     fun login() {

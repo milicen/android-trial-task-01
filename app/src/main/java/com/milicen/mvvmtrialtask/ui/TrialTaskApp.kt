@@ -1,33 +1,27 @@
 package com.milicen.mvvmtrialtask.ui
 
-import android.util.Log
+import android.content.Context
+import android.content.res.Resources
+import android.view.LayoutInflater
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.edit
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,15 +29,24 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.milicen.mvvmtrialtask.MainActivity
 import com.milicen.mvvmtrialtask.R
+import com.milicen.mvvmtrialtask.ui.components.BottomBar
 import com.milicen.mvvmtrialtask.ui.data.FormViewModel
+import com.milicen.mvvmtrialtask.ui.screens.HomeScreen
+import com.milicen.mvvmtrialtask.ui.screens.LoginScreen
+import com.milicen.mvvmtrialtask.ui.screens.RegisterScreen
 
 
 enum class Screens() {
     Login,
-    Register
+    Register,
+    Home
 }
+
+const val PREF_ID = "pref_id"
+const val PREF_FIRSTNAME = "pref_firstname"
+const val PREF_LASTNAME = "pref_lastname"
+const val PREF_EMAIL = "pref_email"
 
 @Composable
 fun TrialTaskApp(
@@ -54,16 +57,29 @@ fun TrialTaskApp(
 ) {
     val uiState by viewModel.data.collectAsState()
     val context = LocalContext.current
+    val sharedPref = context.getSharedPreferences("userData", Context.MODE_PRIVATE)
+
+    val config = LocalConfiguration.current
+    var showBottomBar by remember { mutableStateOf(false) }
+    var showCardDetail by remember {
+        mutableStateOf(false)
+    }
 
     viewModel.loginResponse.observe(owner, Observer { response ->
         if (response.isSuccessful) {
             viewModel.reset()
-            Toast.makeText(
-                context,
-                "Logged in as ${response.body()?.firstName} ${response.body()?.lastName}",
-                Toast.LENGTH_LONG
-            )
-                .show()
+            val data = response.body()
+            sharedPref.edit {
+                putInt(PREF_ID, data?.id ?: 0)
+                putString(PREF_FIRSTNAME, data?.firstName)
+                putString(PREF_LASTNAME, data?.lastName)
+                putString(PREF_EMAIL, data?.email)
+                apply()
+            }
+            navController.navigate(Screens.Home.name) {
+                popUpTo(0)
+            }
+            showBottomBar = true
         }
         else {
             viewModel.reset()
@@ -76,11 +92,18 @@ fun TrialTaskApp(
         }
     })
 
-    Scaffold(modifier = modifier) {paddingValues ->
+    Scaffold(
+        modifier = modifier,
+        bottomBar = {
+            if (showBottomBar) {
+                BottomBar(navController = navController)
+            }
+        }
+    ) {paddingValues ->
         NavHost(
             navController = navController,
             startDestination = Screens.Login.name,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(0.dp).fillMaxSize()
         ) {
             composable(route = Screens.Login.name) {
                 LoginScreen(
@@ -92,7 +115,9 @@ fun TrialTaskApp(
                         viewModel.login()
                     },
                     onRegisterClick = {
-                        navController.navigate(Screens.Register.name) }
+                        navController.navigate(Screens.Register.name)
+                    },
+                    modifier = Modifier.padding(paddingValues)
                 )
             }
 
@@ -100,10 +125,10 @@ fun TrialTaskApp(
                 RegisterScreen(
                     username = uiState.username,
                     password = uiState.password,
-                    confirmPassword = viewModel.confirmPass,
+                    email = viewModel.emailString,
                     onUsernameChange = { viewModel.setUsername(it) },
                     onPasswordChange = { viewModel.setPassword(it) },
-                    onConfirmPasswordChange = { viewModel.setConfirmPassword(it) },
+                    onEmailChange = { viewModel.setEmail(it) },
                     onRegisterClick = {
                         viewModel.reset()
                         Toast.makeText(
@@ -120,188 +145,43 @@ fun TrialTaskApp(
                     }
                 )
             }
+
+            composable(route = Screens.Home.name) {
+                HomeScreen(
+                    onCardClick = {
+                        showCardDetail = true
+                        showBottomBar = false
+                    }
+                )
+
+                if (showCardDetail) {
+                    AndroidView(
+                        factory = {context ->
+                            val view = LayoutInflater.from(context).inflate(R.layout.fragment_details, null)
+
+                            val id = sharedPref.getInt(PREF_ID, 0).toString()
+                            val firstname = sharedPref.getString(PREF_FIRSTNAME, "")
+                            val lastname = sharedPref.getString(PREF_LASTNAME, "")
+                            val email = sharedPref.getString(PREF_EMAIL, "")
+
+                            view.findViewById<TextView>(R.id.tv_id).text = id
+                            view.findViewById<TextView>(R.id.tv_fullname).text = "$firstname $lastname"
+                            view.findViewById<TextView>(R.id.tv_email).text = email
+
+                            view.findViewById<ImageButton>(R.id.btn_close_detail).setOnClickListener {
+                                showCardDetail = false
+                                showBottomBar = true
+                            }
+
+                            view
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+            }
         }
     }
 }
 
-@Composable
-fun LoginScreen(
-    username: String,
-    password: String,
-    onUsernameChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onLoginClick: () -> Unit,
-    onRegisterClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground), 
-            contentDescription = "Logo",
-        )
 
-        Text(
-            text = "Login",
-            style = MaterialTheme.typography.headlineLarge,
-            textAlign = TextAlign.Start,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        OutlinedTextField(
-            value = username,
-            onValueChange = onUsernameChange,
-            label = {
-                Text(text = stringResource(id = R.string.username_label))
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = onPasswordChange,
-            label = {
-                Text(text = stringResource(id = R.string.password_label))
-            },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = onLoginClick,
-            shape = MaterialTheme.shapes.extraSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            Text(text = stringResource(id = R.string.login_label))
-        }
-
-        OutlinedButton(
-            onClick = onRegisterClick,
-            shape = MaterialTheme.shapes.extraSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            Text(text = stringResource(id = R.string.register_label))
-        }
-
-    }
-}
-
-@Composable
-fun RegisterScreen(
-    username: String,
-    password: String,
-    confirmPassword: String,
-    onUsernameChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onConfirmPasswordChange: (String) -> Unit,
-    onRegisterClick: () -> Unit,
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = "Logo",
-        )
-
-        Text(
-            text = "Register",
-            style = MaterialTheme.typography.headlineLarge,
-            textAlign = TextAlign.Start,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        OutlinedTextField(
-            value = username,
-            onValueChange = onUsernameChange,
-            label = {
-                Text(text = stringResource(id = R.string.username_label))
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = onPasswordChange,
-            label = {
-                Text(text = stringResource(id = R.string.password_label))
-            },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = onConfirmPasswordChange,
-            label = {
-                Text(text = stringResource(id = R.string.confirm_password_label))
-            },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = onRegisterClick,
-            shape = MaterialTheme.shapes.extraSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            Text(text = stringResource(id = R.string.register_label))
-        }
-
-        OutlinedButton(
-            onClick = onBackClick,
-            shape = MaterialTheme.shapes.extraSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            Text(text = stringResource(id = R.string.back_label))
-        }
-
-    }
-}
-
-//@Preview(showBackground = true)
-//@Composable
-//fun LoginScreenPreview(){
-//    LoginScreen(
-//        onRegisterClick = {},
-//        onLoginClick = {},
-//        username = "",
-//        password = ""
-//    )
-//}
-
-//@Preview(showBackground = true)
-//@Composable
-//fun RegisterScreenPreview() {
-//    RegisterScreen(
-//        username = "",
-//        password = "",
-//        confirmPassword = "",
-//        onRegisterClick = {}
-//    )
-//}

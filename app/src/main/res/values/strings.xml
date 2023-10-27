@@ -2,8 +2,55 @@
     <string name="app_name">MVVM Trial Task</string>
     <string name="username_label">Username</string>
     <string name="password_label">Password</string>
-    <string name="confirm_password_label">Confirm password</string>
+    <string name="email_label">Email</string>
     <string name="login_label">Log in</string>
     <string name="register_label">Register</string>
     <string name="back_label">Back</string>
+
+    <!--  Auth page texts  -->
+    <string name="login_title">Welcome back\n to Mabank Wallet</string>
+    <string name="register_title">Immediately feel the\n ease of transacting just\n by registering</string>
+    <string name="sign_up_with_label">Sign up with</string>
+    <string name="no_account_label">Don\'t have an account yet?</string>
+    <string name="hv_account_label">You have account?</string>
+
+    <!--  Button texts  -->
+    <string name="google_sso">Google</string>
+    <string name="facebook_sso">Facebook</string>
+
+    <!--  Icon button texts  -->
+    <string name="transfer">Transfer</string>
+    <string name="payment">Payment</string>
+    <string name="payout">Payout</string>
+    <string name="top_up">Top up</string>
+
+    <!--  Home page texts  -->
+    <string name="wallet_title">Wallet</string>
+    <string name="wallet_status">Active</string>
+    <string name="balance_title">Balance</string>
+    <string name="balance_amount">$ 1.234</string>
+    <string name="card_title">Card</string>
+    <string name="card_bank_name">Mabank</string>
+    <string name="transaction_list_title">Last Transaction</string>
+    <string name="view_all">View all</string>
+
+    <!--  Transaction data  -->
+    <string name="netflix_title">Netflix</string>
+    <string name="netflix_desc">Month subscription</string>
+    <string name="netflix_amount">$12</string>
+    <string name="paypal_title">Paypal</string>
+    <string name="paypal_desc">Tax</string>
+    <string name="paypal_amount">$10</string>
+    <string name="gopay_title">Paylater</string>
+    <string name="gopay_desc">Buy item</string>
+    <string name="gopay_amount">$2</string>
+
+    <!--  Detail texts  -->
+    <string name="detail_title">Detail card</string>
+    <string name="name_label">Name</string>
+    <string name="id_label">ID</string>
+    <string name="bank_label">Bank</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
 </resources>

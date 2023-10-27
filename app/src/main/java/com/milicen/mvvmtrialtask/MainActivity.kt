@@ -23,7 +23,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    TrialTaskApp(owner = this)
+                    TrialTaskApp(
+                        owner = this,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }
